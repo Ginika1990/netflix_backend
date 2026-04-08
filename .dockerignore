@@ -1,0 +1,8 @@
+.git
+.github
+.gitlab-ci.yml
+target
+.vscode
+.idea
+.env
+.env.*

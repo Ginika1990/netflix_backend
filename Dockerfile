@@ -1,34 +1,19 @@
-FROM ubuntu
-
-# Install necessary packages
-#============================
-RUN apt-get update && apt-get install -y 
-RUN apt install openjdk-17-jre-headless -y
-RUN apt install maven -y
-
-# Set the working directory
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy source files and pom.xml
-COPY application.properties /app/src/main/resources/application.properties
-COPY ./src /app/src
-COPY ./pom.xml /app
+COPY pom.xml .
+COPY src ./src
 
-# Build the application
-RUN mvn -f /app/pom.xml clean package
-RUN ls -la /app/target
-# Copy the built JAR file to the container
+RUN mvn -DskipTests clean package
 
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+
+RUN groupadd -r spring && useradd --no-log-init -r -g spring spring
+
+COPY --from=build /app/target/movieist-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
+USER spring:spring
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
-
-
-
-
-# ==========================
-# FROM eclipse-temurin:25
-# RUN mkdir /opt/app
-# COPY japp.jar /opt/app
-# CMD ["java", "-jar", "/opt/app/japp.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
