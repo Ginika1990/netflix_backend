@@ -1,41 +1,41 @@
-name: Build and push docker image
+name: Build and Push Backend to ECR
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPOSITORY: netflix_backend
 
 jobs:
-  build-and-push:
+  push-image:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out the repository
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-# Login to ECR
-#=============
-    - name: Login to ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-
-    - name: Docker build 
-      run: |
-        echo "${{ vars.APPLICATION_PROPERTIES }}" > application.properties
-        # ls -la 
-        # cat application.properties
-        docker build -t netflix_backend:latest .
-
-    - name: Docker push
-      run: |
-        docker tag netflix_backend:latest 348230509416.dkr.ecr.us-east-2.amazonaws.com/netflix_backend:${GITHUB_RUN_NUMBER}
-        docker push 348230509416.dkr.ecr.us-east-2.amazonaws.com/netflix_backend:${GITHUB_RUN_NUMBER}
-
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
