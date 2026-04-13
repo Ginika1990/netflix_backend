@@ -1,0 +1,42 @@
+{
+  "family": "netflix-backend-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::586091293498:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::586091293498:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "netflix-backend",
+      "image": "586091293498.dkr.ecr.us-east-1.amazonaws.com/netflix_backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "MONGO_DATABASE",
+          "value": "netflix_db"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "MONGO_CLUSTER",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:586091293498:secret:netflix-backend/mongo-cluster"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/netflix-backend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
